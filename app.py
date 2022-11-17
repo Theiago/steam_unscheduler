@@ -10,6 +10,7 @@ for library in steam_libraries:
             f = open(path, "r")
             line = f.readlines()
             if len(line) > 10:
+                print("JOGO ENCONTRADO:", line[5].split("\"")[3])
                 line[19] = '\t"AutoUpdateBehavior"\t\t"2"\n'
-                with open(file, "w") as file:
+                with open(path, "w") as file:
                     file.writelines(line)
