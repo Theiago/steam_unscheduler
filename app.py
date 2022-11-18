@@ -11,7 +11,7 @@ if __name__ == "__main__":
                 f = open(path, "r")
                 line = f.readlines()
                 if len(line) > 10:
-                    print("JOGO ENCONTRADO:", line[5].split("\"")[3])
+                    print("GAME FOUND:", line[5].split("\"")[3])
                     line[19] = '\t"AutoUpdateBehavior"\t\t"2"\n'
                     with open(path, "w") as file:
                         file.writelines(line)
