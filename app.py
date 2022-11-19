@@ -1,4 +1,4 @@
-from os import listdir
+from os import listdir, system
 from folders import steam_libraries
 
 if __name__ == "__main__":
@@ -15,3 +15,5 @@ if __name__ == "__main__":
                     line[19] = '\t"AutoUpdateBehavior"\t\t"2"\n'
                     with open(path, "w") as file:
                         file.writelines(line)
+    print("\nAll installed games have been set update to high priority.\n")
+    system('pause')
