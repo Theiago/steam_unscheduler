@@ -1,23 +1,41 @@
+import re
 import winreg
-import os
+from pathlib import Path
+
+STEAM_REGISTRY_KEYS = [
+    (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
+    (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Valve\Steam", "SteamPath"),
+]
+
+# Matches lines like: "path"		"E:\\SteamLibrary"
+LIBRARY_PATH_PATTERN = re.compile(r'^\s*"path"\s+"(?P<path>[^"]+)"', re.MULTILINE)
 
 
-def get_steam_libraries():
-    # Get the Steam install path in the Windows Registers
-    steam_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam")
-    install_path = os.path.join(winreg.QueryValueEx(steam_key, "InstallPath")[0], "config", "libraryfolders.vdf")
+def get_steam_install_path() -> Path:
+    """Get the Steam install path from the Windows Registry."""
+    for hive, key_path, value_name in STEAM_REGISTRY_KEYS:
+        try:
+            with winreg.OpenKey(hive, key_path) as key:
+                return Path(winreg.QueryValueEx(key, value_name)[0])
+        except OSError:
+            continue
 
-    with open(install_path, "r") as f:
-        steam_config = f.readlines()
+    raise FileNotFoundError("Steam installation not found in the Windows Registry.")
 
-    steam_libraries = []
 
-    # Change the priority to high
-    for line in steam_config:
-        if line.startswith("\t\t\"path\""):
-            directory = line.split("\"")[3]
-            steam_libraries.append(os.path.join(directory, "steamapps"))
+def get_steam_libraries() -> list[Path]:
+    """Return the "steamapps" folder of every existing Steam library."""
+    library_folders = get_steam_install_path() / "config" / "libraryfolders.vdf"
+    content = library_folders.read_text(encoding="utf-8")
 
-    return steam_libraries
+    libraries = []
+    for match in LIBRARY_PATH_PATTERN.finditer(content):
+        # The vdf file escapes backslashes ("E:\\SteamLibrary")
+        directory = match["path"].replace("\\\\", "\\")
+        library = Path(directory) / "steamapps"
 
-steam_libraries = get_steam_libraries()
+        # Skip libraries that no longer exist (removed drive/folder)
+        if library.is_dir():
+            libraries.append(library)
+
+    return libraries
